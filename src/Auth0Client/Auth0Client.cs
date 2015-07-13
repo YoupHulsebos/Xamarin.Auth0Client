@@ -32,6 +32,8 @@ namespace Auth0.SDK
 		/// </summary>
 		public IDeviceIdProvider DeviceIdProvider { get; set; }
 
+        public bool RetrieveProfile { get; set; }
+
 		public string CallbackUrl
 		{
 			get
@@ -302,32 +304,39 @@ namespace Auth0.SDK
 				.Any(e => e.Equals("offline_access", StringComparison.InvariantCultureIgnoreCase));
 		}
 
-		protected void SetupCurrentUser(IDictionary<string, string> accountProperties)
-		{
-            var endpoint = string.Format(Auth0Constants.UserInfoEndpoint, this.Domain, accountProperties["access_token"]);
+        protected void SetupCurrentUser(IDictionary<string, string> accountProperties)
+        {
+            if (this.RetrieveProfile)
+            {
+                var endpoint = string.Format(Auth0Constants.UserInfoEndpoint, this.Domain, accountProperties["access_token"]);
 
-			var request = new Request ("GET", new Uri(endpoint));
-			request.GetResponseAsync ().ContinueWith (t => 
-			{
-					try
-					{
-						var text = t.Result.GetResponseText();
+                var request = new Request("GET", new Uri(endpoint));
+                request.GetResponseAsync().ContinueWith(t =>
+                {
+                    try
+                    {
+                        var text = t.Result.GetResponseText();
 
-						if (t.Result.StatusCode != System.Net.HttpStatusCode.OK)
-						{
-							throw new InvalidOperationException(text);
-						}
-						accountProperties.Add("profile", text);
-					}
-					catch (Exception ex)
-					{
-						throw ex;
-					}
-					finally
-					{
-						this.CurrentUser = new Auth0User(accountProperties);
-					}
-				}).Wait();
-		}
+                        if (t.Result.StatusCode != System.Net.HttpStatusCode.OK)
+                        {
+                            throw new InvalidOperationException(text);
+                        }
+                        accountProperties.Add("profile", text);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex;
+                    }
+                    finally
+                    {
+                        this.CurrentUser = new Auth0User(accountProperties);
+                    }
+                }).Wait();
+            }
+            else
+            {
+                this.CurrentUser = new Auth0User(accountProperties);
+            }
+        }
 	}
 }
